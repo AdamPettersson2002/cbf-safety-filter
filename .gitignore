@@ -1,6 +1,52 @@
+# Virtual environment
 .venv/
-.idea/
+venv/
+env/
+ENV/
+
+# Python cache
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VS Code
+.vscode/
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Results (comment out if you want to track specific results)
+results/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# OS files
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+
+# pytest
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
