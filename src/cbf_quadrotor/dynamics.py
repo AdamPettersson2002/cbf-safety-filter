@@ -1,43 +1,49 @@
-"""
-Double integrator dynamics for 2D quadrotor simulation.
-
-State: x = [px, py, vx, vy]
-Control: u = [ax, ay]
-
-Dynamics:
-  p_{k+1} = p_k + dt * v_k
-  v_{k+1} = v_k + dt * u_k
-"""
-
 import numpy as np
+from dataclasses import dataclass
 
 
-def step(x: np.ndarray, u: np.ndarray, dt: float, v_max: float = None) -> np.ndarray:
+@dataclass
+class State:
     """
-    Integrate dynamics one timestep using Euler method.
-
-    Args:
-        x: current state [px, py, vx, vy]
-        u: control input [ax, ay]
-        dt: timestep
-        v_max: optional speed limit
-
-    Returns:
-        x_next: next state [px, py, vx, vy]
+    Represents the full 6D state of the drone.
+    We separate position and velocity for clarity.
     """
-    p = x[:2]
-    v = x[2:]
+    pos: np.ndarray  # [x, y, z] (Meters)
+    vel: np.ndarray  # [vx, vy, vz] (Meters/second)
 
-    # Update velocity
-    v_next = v + dt * u
+    @property
+    def vector(self):
+        """Returns the full 6x1 state vector used for matrix math."""
+        return np.concatenate([self.pos, self.vel])
 
-    # Optional speed limiting
-    if v_max is not None:
-        speed = np.linalg.norm(v_next)
-        if speed > v_max:
-            v_next = v_next * (v_max / speed)
 
-    # Update position
-    p_next = p + dt * v_next
+class DroneDynamics:
+    def __init__(self, dt: float = 0.05):
+        self.dt = dt
 
-    return np.concatenate([p_next, v_next])
+        # --- The Double Integrator Matrices ---
+        # State Transition Matrix A (6x6)
+        # p_next = p + v*dt
+        # v_next = v
+        self.A = np.eye(6)
+        self.A[0:3, 3:6] = np.eye(3) * dt
+
+        # Control Input Matrix B (6x3)
+        # p_next += 0
+        # v_next += u*dt
+        self.B = np.zeros((6, 3))
+        self.B[3:6, :] = np.eye(3) * dt
+
+    def step(self, state: State, u: np.ndarray) -> State:
+        """
+        Advances the simulation by one time step dt.
+        x_{k+1} = A * x_k + B * u_k
+        """
+        x_k = state.vector
+
+        # Apply the discrete dynamics
+        x_next = self.A @ x_k + self.B @ u
+
+        # Return a new State object
+        return State(pos=x_next[:3], vel=x_next[3:])
+
