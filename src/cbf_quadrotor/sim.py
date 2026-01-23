@@ -100,6 +100,7 @@ def plot_results(path, target_path, mission):
 
 
 if __name__ == "__main__":
+    print("Running Scenario test...")
     #run_simulation("head_on")
     #run_simulation("chase")
     run_simulation("clutter")
