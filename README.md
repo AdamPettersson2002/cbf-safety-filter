@@ -42,29 +42,6 @@ python -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install numpy scipy matplotlib osqp
-
-```
-## 🚀 Quick Start
-
-### 1. Installation
-
-**Recommended:** Use **Python 3.12** or **3.13** to avoid C++ compiler requirements for the QP solver.
-
-```bash
-# Clone the repository
-git clone [https://github.com/YOUR_USERNAME/cbf-drone-sim.git](https://github.com/YOUR_USERNAME/cbf-drone-sim.git)
-cd cbf-drone-sim
-
-# Create a virtual environment
-python -m venv .venv
-
-# Activate (Windows)
-.venv\Scripts\activate
-# Activate (Mac/Linux)
-source .venv/bin/activate
-
-# Install dependencies
 pip install numpy scipy matplotlib osqp 
 ```
 
