@@ -100,6 +100,6 @@ def plot_results(path, target_path, mission):
 
 
 if __name__ == "__main__":
-    run_simulation("head_on")
+    #run_simulation("head_on")
     #run_simulation("chase")
-    #run_simulation("clutter")
+    run_simulation("clutter")

@@ -86,14 +86,14 @@ def get_scenario_3_clutter():
     # Generate 5 random obstacles
     obs_list = []
     np.random.seed(42)  # Fixed seed for reproducibility
-    for _ in range(5):
-        center = np.random.uniform(low=[2, -5, -2], high=[8, 5, 2])
+    for _ in range(20):
+        center = np.random.uniform(low=[-5, -5, -5], high=[5, 5, 5])
         obs_list.append(Obstacle(center, np.zeros(3), radius=0.8))
 
     return Scenario(
         name="Cluttered Field",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
-        target=StaticTarget(pos=np.array([12., 0., 0.])),
+        target=StaticTarget(pos=np.array([12., -6., 0.])),
         obstacles=obs_list,
         duration=20.0
     )
