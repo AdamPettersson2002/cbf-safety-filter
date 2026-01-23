@@ -68,31 +68,52 @@ cbf-drone-sim/
 ```
 ## 📐 Mathematical Background
 
-### 1. System dynamics
+### 1. System Dynamics (Double Integrator)
+
 The state is defined as $x = [p, v]^T \in \mathbb{R}^6$.
+
 $$
-\begin{aligned}
-\dot{p} = v \\ \dot{v} = u
-\end{aligned}
+\dot{p} = v
+$$
+$$
+\dot{v} = u
 $$
 
 ### 2. Nominal Guidance (LQR)
-We solve the Algebraic Riccati Equation (ARE) to find the optimal gain matrix $K$ that minimizes the error to the 
-target:
+
+We solve the Algebraic Riccati Equation (ARE) to find the optimal gain matrix $K$ that minimizes the error to the target:
+
 $$
 u_{nom} = -K (x_{drone} - x_{target})
 $$
-### 3.Safety Filter (CBF-QP)
-We minimize the deviation from the nominal control subject to the safety constraint:
+
+### 3. Safety Filter (CBF-QP)
+
+We minimize the deviation from the nominal control subject to the safety constraint.
+
+**Optimization Problem:**
+
 $$
-\begin{aligned}
-\min_{u} \quad & \frac{1}{2} ||u - u_{nom}||^2 \\
-\text{s.t.} \quad & \dot{h}(x, u) \geq -\gamma(h(x)) \\
-& u_{min} \leq u \leq u_{max}
-\end{aligned}
+\min_{u} \quad \frac{1}{2} ||u - u_{nom}||^2
 $$
-Where the barrier condition $\dot{h} \geq -k_1 \dot{h} - k_0 h$ ensures the drone never enters the 
-obstacle region defined by $h(x) < 0$.
+
+**Subject to:**
+
+$$
+A_{cbf} u \leq b_{cbf}
+$$
+$$
+u_{min} \leq u \leq u_{max}
+$$
+
+**Barrier Condition:**
+For relative degree 2 systems (acceleration controlled), the safety constraint is defined as:
+
+$$
+\ddot{h} \geq -k_1 \dot{h} - k_0 h
+$$
+
+This ensures the drone never enters the obstacle region defined by $h(x) < 0$.
 
 ## 🔧 Troubleshooting
 
