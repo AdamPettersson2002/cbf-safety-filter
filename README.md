@@ -69,18 +69,29 @@ cbf-drone-sim/
 ## 📐 Mathematical Background
 
 ### 1. System dynamics
-The state is defined as $x = [p, v]^T \in \mathbb{R}^6$.$$\dot{p} = v \\
-\dot{v} = u$$
+The state is defined as $x = [p, v]^T \in \mathbb{R}^6$.
+$$
+\begin{aligned}
+\dot{p} = v \\ \dot{v} = u
+\end{aligned}
+$$
 
 ### 2. Nominal Guidance (LQR)
 We solve the Algebraic Riccati Equation (ARE) to find the optimal gain matrix $K$ that minimizes the error to the 
-target:$$u_{nom} = -K (x_{drone} - x_{target})$$
+target:
+$$
+u_{nom} = -K (x_{drone} - x_{target})
+$$
 ### 3.Safety Filter (CBF-QP)
-We minimize the deviation from the nominal control subject to the safety constraint:$$\begin{aligned}
+We minimize the deviation from the nominal control subject to the safety constraint:
+$$
+\begin{aligned}
 \min_{u} \quad & \frac{1}{2} ||u - u_{nom}||^2 \\
 \text{s.t.} \quad & \dot{h}(x, u) \geq -\gamma(h(x)) \\
 & u_{min} \leq u \leq u_{max}
-\end{aligned}$$Where the barrier condition $\dot{h} \geq -k_1 \dot{h} - k_0 h$ ensures the drone never enters the 
+\end{aligned}
+$$
+Where the barrier condition $\dot{h} \geq -k_1 \dot{h} - k_0 h$ ensures the drone never enters the 
 obstacle region defined by $h(x) < 0$.
 
 ## 🔧 Troubleshooting
