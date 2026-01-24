@@ -5,7 +5,6 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-# Custom modules
 from dynamics import DroneDynamics
 from guidance import NominalGuidance
 from safety_filter import SafetyFilter
