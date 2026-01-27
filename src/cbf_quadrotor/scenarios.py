@@ -70,14 +70,14 @@ def get_scenario_1_head_on():
 
 def get_scenario_2_chase():
     """Chasing a moving target through a patrol."""
-    obs_patrol = Obstacle(np.array([5.0, 3.0, 0.0]), np.array([0.0, -1.0, 0.0]), radius=1.0)
+    obs_patrol = Obstacle(center=np.array([8.0, 0.0, 0.0]),velocity= np.array([0.0, 2.0, 0.0]), radius=1.0)
 
     return Scenario(
         name="Circular Chase",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
         target=CircularTarget(radius=8.0, speed=0.5),
         obstacles=[obs_patrol],
-        duration=25.0
+        duration=50.0
     )
 
 

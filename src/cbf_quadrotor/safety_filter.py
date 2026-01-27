@@ -4,7 +4,7 @@ from scipy import sparse
 
 
 class SafetyFilter:
-    def __init__(self, u_max=10.0):
+    def __init__(self, u_max=15.0):
         self.u_max = u_max
 
     def filter(self, u_nom, drone_pos, drone_vel, obstacles):
