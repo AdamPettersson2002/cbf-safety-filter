@@ -1,6 +1,42 @@
 import numpy as np
 import scipy.linalg
 
+
+class GeneralGuidance:
+    def __init__(self, gain=4.0):
+        self.N = gain  # Navigation constant (usually 3.0 to 5.0)
+
+    def compute_u_nom(self, drone_pos, drone_vel, target_pos, target_vel):
+        # 1. Relative Vectors
+        rel_pos = target_pos - drone_pos
+        rel_vel = target_vel - drone_vel
+        dist = np.linalg.norm(rel_pos)
+        
+        if dist < 0.01:
+            return np.zeros(3)
+
+        # 2. Line of Sight (LOS) calculation
+        # We find how fast the LOS vector is rotating
+        # Omega = (r x v) / (r . r)
+        omega = np.cross(rel_pos, rel_vel) / (dist**2)
+        
+        # 3. Acceleration Law (Proportional Navigation)
+        # u = N * Vr * Omega
+        # This commands acceleration perpendicular to the LOS 
+        # to "close the gate" on the target.
+        closing_vel = -rel_vel
+        accel_cmd = self.N * np.cross(omega, closing_vel)
+        
+        # 4. Closing the gap
+        # PN is great for steering, but we need a "push" toward the target
+        # so we don't just orbit it. We add a component along the LOS.
+        push_gain = 2.0
+        push_cmd = (rel_pos / dist) * push_gain
+        noise = np.random.normal(0, 0.01, size=3)
+
+        return accel_cmd + push_cmd + noise
+
+
 class NominalGuidance:
     """
     Generates a nominal control input u_nom.

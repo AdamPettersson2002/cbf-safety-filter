@@ -42,6 +42,16 @@ class CircularTarget:
         return pos, vel
 
 
+class LinearTarget:
+    def __init__(self, start_pos: np.ndarray, vel: np.ndarray):
+        self.start_pos = np.asarray(start_pos, dtype=float)
+        self.vel = np.asarray(vel, dtype=float)
+
+    def update(self, time: float):
+        pos = self.start_pos + self.vel * time
+        return pos, self.vel
+
+
 # --- 2. The Scenario Container ---
 @dataclass
 class Scenario:
@@ -50,6 +60,7 @@ class Scenario:
     target: Target
     obstacles: List[Obstacle] = field(default_factory=list)
     duration: float = 10.0
+
 
 
 # --- 3. The Scenario Definitions ---
@@ -61,47 +72,79 @@ def get_scenario_1_head_on():
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
         target=StaticTarget(pos=np.array([10., 0., 0.])),
         obstacles=[
-            # Offset slightly Y=0.1 to break symmetry
-            Obstacle(np.array([5.0, 0.0, 0.0]), np.array([0., 0., 0.]), radius=1.0)
+            Obstacle(np.array([5.0, 0.0, 0.0]), np.array([0.0, 0., 0.]), radius=1.0)
         ],
         duration=15.0
     )
 
 
-def get_scenario_2_chase():
+def get_scenario_2_head_on():
+    """Simple static obstacle blocking the path and moving toward us."""
+    return Scenario(
+        name="Head On Collision Test (Moving Obstacle)",
+        start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
+        target=StaticTarget(pos=np.array([10., 0., 0.])),
+        obstacles=[
+            Obstacle(np.array([5.0, 0.0, 0.0]), np.array([-1.0, 0., 0.]), radius=1.0)
+        ],
+        duration=15.0
+    )
+
+
+def get_scenario_3_chase():
     """Chasing a moving target through a patrol."""
     obs_patrol = Obstacle(center=np.array([8.0, 0.0, 0.0]),velocity= np.array([0.0, 2.0, 0.0]), radius=1.0)
 
     return Scenario(
         name="Circular Chase",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
-        target=CircularTarget(radius=8.0, speed=0.5),
+        target=CircularTarget(radius=8.0, speed=0.),
         obstacles=[obs_patrol],
         duration=50.0
     )
 
 
-def get_scenario_3_clutter():
-    """A field of random static obstacles."""
-    # Generate 5 random obstacles
-    obs_list = []
-    np.random.seed(42)  # Fixed seed for reproducibility
-    for _ in range(20):
-        center = np.random.uniform(low=[-5, -5, -5], high=[5, 5, 5])
-        obs_list.append(Obstacle(center, np.zeros(3), radius=0.8))
+def get_scenario_4_blockers():
+    """Target moves in a straight line; 5 circular obstacles move back/forth in y blocking the way."""
+    # Drone starts at origin
+    start = State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.]))
+
+    # Target moves straight along +x
+    target = LinearTarget(
+        start_pos=np.array([12., 0., 0.]),
+        vel=np.array([0.25, 0.0, 0.0])
+    )
+
+    # 5 obstacles placed along the corridor (x direction), oscillating in y due to your loop's bounce logic
+    xs = [3.0, 6.0, 9.0, 12.0, 15.0]
+    y0s = [-3.0, -1.5, 0.0, 1.5, 3.0]          # stagger initial positions
+    speeds = [1.2, -1.0, 1.4, -1.1, 1.3]        # stagger directions/speeds
+    radius = 1.0
+
+    obstacles = []
+    for x, y0, vy in zip(xs, y0s, speeds):
+        obstacles.append(
+            Obstacle(
+                center=np.array([x, y0, 0.0]),
+                velocity=np.array([0.0, vy, 0.0]),   # IMPORTANT: nonzero y-velocity triggers your motion + bounce
+                radius=radius
+            )
+        )
 
     return Scenario(
-        name="Cluttered Field",
-        start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
-        target=StaticTarget(pos=np.array([12., -6., 0.])),
-        obstacles=obs_list,
-        duration=20.0
+        name="Straight Target + 5 Blockers (Back/Forth)",
+        start_state=start,
+        target=target,
+        obstacles=obstacles,
+        duration=40.0
     )
+
 
 
 # Dictionary for easy loading
 SCENARIOS = {
     "head_on": get_scenario_1_head_on,
-    "chase": get_scenario_2_chase,
-    "clutter": get_scenario_3_clutter
+    "head_on_2": get_scenario_2_head_on,
+    "clutter": get_scenario_3_chase,
+    "many_blockers": get_scenario_4_blockers,
 }

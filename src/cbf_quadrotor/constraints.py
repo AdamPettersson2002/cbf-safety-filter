@@ -43,3 +43,5 @@ class Obstacle:
         A = -2 * rel_pos
         b = 2 * np.dot(rel_vel, rel_vel) + k1 * h_dot + k0 * h
         return A, b
+
+
