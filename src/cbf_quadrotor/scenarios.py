@@ -2,7 +2,7 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import List, Protocol
 from dynamics import State
-from constraints import Obstacle
+from constraints import Obstacle, PatrollingObstacle
 
 
 # --- 1. Abstracting the Target ---
@@ -93,13 +93,29 @@ def get_scenario_2_head_on():
 
 def get_scenario_3_chase():
     """Chasing a moving target through a patrol."""
-    obs_patrol = Obstacle(center=np.array([8.0, 0.0, 0.0]),velocity= np.array([0.0, 2.0, 0.0]), radius=1.0)
+    
+    # Obstacle 1: Patrols vertically at X=8, between Y=-4 and Y=4
+    obs_patrol1 = PatrollingObstacle(
+        waypoint_a=[8.0, -4.0, 0.0],
+        waypoint_b=[8.0, 4.0, 0.0],
+        speed=1.0,
+        radius=1.0
+    )
+    
+    # Obstacle 2: Patrols diagonally or horizontally safely
+    # This replaces the one that was causing the crash!
+    obs_patrol2 = PatrollingObstacle(
+        waypoint_a=[4.0, 6.0, 0.0], # Start high
+        waypoint_b=[4.0, 2.0, 0.0], # Move low
+        speed=1.0,
+        radius=1.0
+    )
 
     return Scenario(
-        name="Circular Chase",
+        name="Circular Chase with Patrols",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
-        target=CircularTarget(radius=8.0, speed=0.),
-        obstacles=[obs_patrol],
+        target=CircularTarget(radius=8.0, speed=0.7),
+        obstacles=[obs_patrol1, obs_patrol2], # The loop handles them polymorphically
         duration=50.0
     )
 
@@ -145,6 +161,6 @@ def get_scenario_4_blockers():
 SCENARIOS = {
     "head_on": get_scenario_1_head_on,
     "head_on_2": get_scenario_2_head_on,
-    "clutter": get_scenario_3_chase,
+    "chase": get_scenario_3_chase,
     "many_blockers": get_scenario_4_blockers,
 }

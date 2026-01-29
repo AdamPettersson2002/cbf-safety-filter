@@ -11,6 +11,11 @@ class Obstacle:
     velocity: np.ndarray  # [vx, vy, vz] velocity
     radius: float  # Radius of the obstacle
 
+    def update(self, dt: float):
+        """Default behavior: Linear movement based on constant velocity."""
+        self.center += self.velocity * dt
+        
+
     def get_cbf_constraints(self, drone_pos, drone_vel, k0=5.0, k1=5.0):
         """
         Calculates the linear constraint on control input u:
@@ -43,5 +48,40 @@ class Obstacle:
         A = -2 * rel_pos
         b = 2 * np.dot(rel_vel, rel_vel) + k1 * h_dot + k0 * h
         return A, b
+
+
+class PatrollingObstacle(Obstacle):
+    def __init__(self, waypoint_a, waypoint_b, speed=2.0, radius=1.0):
+        # Start at Waypoint A
+        super().__init__(center=np.array(waypoint_a, dtype=float), velocity=np.zeros(3), radius=radius)
+        self.waypoint_a = np.array(waypoint_a, dtype=float)
+        self.waypoint_b = np.array(waypoint_b, dtype=float)
+        self.speed = speed
+        self.target = self.waypoint_b # Start moving toward B
+
+    def update(self, dt: float):
+        # 1. Calculate direction to target
+        direction = self.target - self.center
+        dist = np.linalg.norm(direction)
+
+        # 2. Check if reached (with small tolerance)
+        if dist < 0.1:
+            # Switch target
+            if np.array_equal(self.target, self.waypoint_b):
+                self.target = self.waypoint_a
+            else:
+                self.target = self.waypoint_b
+            
+            # Recalculate direction
+            direction = self.target - self.center
+            dist = np.linalg.norm(direction)
+
+        # 3. Move
+        if dist > 0:
+            norm_dir = direction / dist
+            self.velocity = norm_dir * self.speed
+            self.center += self.velocity * dt
+        else:
+            self.velocity = np.zeros(3)
 
 
