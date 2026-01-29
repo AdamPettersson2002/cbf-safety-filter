@@ -5,8 +5,6 @@ from dynamics import State
 from constraints import Obstacle, PatrollingObstacle
 
 
-# --- 1. Abstracting the Target ---
-# This allows you to swap a "Static Point" for a "Moving Circle" easily
 class Target(Protocol):
     def update(self, time: float):
         """Returns pos, vel at given time"""
@@ -52,7 +50,7 @@ class LinearTarget:
         return pos, self.vel
 
 
-# --- 2. The Scenario Container ---
+# --- Different Scenarios ---
 @dataclass
 class Scenario:
     name: str
@@ -62,79 +60,50 @@ class Scenario:
     duration: float = 10.0
 
 
-
-# --- 3. The Scenario Definitions ---
-
 def get_scenario_1_head_on():
     """Simple static obstacle blocking the path."""
     return Scenario(
-        name="Head On Collision Test",
+        name="Head On Collision",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
         target=StaticTarget(pos=np.array([10., 0., 0.])),
-        obstacles=[
-            Obstacle(np.array([5.0, 0.0, 0.0]), np.array([0.0, 0., 0.]), radius=1.0)
-        ],
-        duration=15.0
+        obstacles=[Obstacle(np.array([5.0, 0.0, 0.0]), np.array([0.0, 0., 0.]), radius=1.0)],
+        duration=20.0
     )
 
 
 def get_scenario_2_head_on():
-    """Simple static obstacle blocking the path and moving toward us."""
+    """Simple static obstacle blocking the path and moving toward the drone."""
     return Scenario(
-        name="Head On Collision Test (Moving Obstacle)",
+        name="Head On Collision With Moving Obstacle)",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
         target=StaticTarget(pos=np.array([10., 0., 0.])),
-        obstacles=[
-            Obstacle(np.array([5.0, 0.0, 0.0]), np.array([-1.0, 0., 0.]), radius=1.0)
-        ],
-        duration=15.0
+        obstacles=[Obstacle(np.array([5.0, 0.0, 0.0]), np.array([-1.0, 0., 0.]), radius=1.0)],
+        duration=20.0
     )
 
 
 def get_scenario_3_chase():
-    """Chasing a moving target through a patrol."""
-    
-    # Obstacle 1: Patrols vertically at X=8, between Y=-4 and Y=4
-    obs_patrol1 = PatrollingObstacle(
-        waypoint_a=[8.0, -4.0, 0.0],
-        waypoint_b=[8.0, 4.0, 0.0],
-        speed=1.0,
-        radius=1.0
-    )
-    
-    # Obstacle 2: Patrols diagonally or horizontally safely
-    # This replaces the one that was causing the crash!
-    obs_patrol2 = PatrollingObstacle(
-        waypoint_a=[4.0, 6.0, 0.0], # Start high
-        waypoint_b=[4.0, 2.0, 0.0], # Move low
-        speed=1.0,
-        radius=1.0
-    )
-
+    """Chasing a moving target in a circle through moving obstacles."""
+    obs_patrol1 = PatrollingObstacle(waypoint_a=[8.0, -4.0, 0.0],waypoint_b=[8.0, 4.0, 0.0], speed=1.0, radius=1.0)
+    obs_patrol2 = PatrollingObstacle(waypoint_a=[4.0, 6.0, 0.0], waypoint_b=[4.0, 2.0, 0.0], speed=1.0, radius=1.0)
+    obs_patrol3 = PatrollingObstacle(waypoint_a=[-8.0, 0.0, 0.0],waypoint_b=[0.5, 8.0, 0.0], speed=1.0, radius=1.0)
     return Scenario(
         name="Circular Chase with Patrols",
         start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
         target=CircularTarget(radius=8.0, speed=0.7),
-        obstacles=[obs_patrol1, obs_patrol2], # The loop handles them polymorphically
-        duration=50.0
+        obstacles=[obs_patrol1, obs_patrol2, obs_patrol3],
+        duration=30.0
     )
 
 
 def get_scenario_4_blockers():
-    """Target moves in a straight line; 5 circular obstacles move back/forth in y blocking the way."""
-    # Drone starts at origin
+    """Target moves in a straight line while patrols move back/forth and block the path."""
     start = State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.]))
+    target = LinearTarget(start_pos=np.array([12., 0., 0.]), vel=np.array([2, 0.0, 0.0]))
 
-    # Target moves straight along +x
-    target = LinearTarget(
-        start_pos=np.array([12., 0., 0.]),
-        vel=np.array([0.25, 0.0, 0.0])
-    )
-
-    # 5 obstacles placed along the corridor (x direction), oscillating in y due to your loop's bounce logic
     xs = [3.0, 6.0, 9.0, 12.0, 15.0]
-    y0s = [-3.0, -1.5, 0.0, 1.5, 3.0]          # stagger initial positions
-    speeds = [1.2, -1.0, 1.4, -1.1, 1.3]        # stagger directions/speeds
+    y0s = [-3.0, -1.5, 0.0, 1.5, 3.0]
+    speeds = [1.2, -1.0, 1.4, -1.1, 1.3]
     radius = 1.0
 
     obstacles = []
@@ -142,7 +111,7 @@ def get_scenario_4_blockers():
         obstacles.append(
             Obstacle(
                 center=np.array([x, y0, 0.0]),
-                velocity=np.array([0.0, vy, 0.0]),   # IMPORTANT: nonzero y-velocity triggers your motion + bounce
+                velocity=np.array([0.0, vy, 0.0]),
                 radius=radius
             )
         )
@@ -156,11 +125,37 @@ def get_scenario_4_blockers():
     )
 
 
+def get_scenario_5_los():
+    """
+    The target moves in a straight line far away. A wall of static pillars periodically blocks the LOS.
+    Crucial for testing what happens when the drone 'loses' the target when using sensor modeling.
+    """
+    target = LinearTarget(start_pos=np.array([40.0, -20.0, 0.0]), vel=np.array([0.0, 4.0, 0.0]))
+    obstacles = []
 
-# Dictionary for easy loading
+    # Pillar 1 (Low Y)
+    obstacles.append(Obstacle(center=np.array([20.0, -10.0, 0.0]), velocity=np.zeros(3), radius=4.0))
+
+    # Pillar 2 (Center)
+    obstacles.append(Obstacle(center=np.array([20.0, 0.0, 0.0]), velocity=np.zeros(3), radius=4.0))
+
+    # Pillar 3 (High Y)
+    obstacles.append(Obstacle(center=np.array([20.0, 10.0, 0.0]), velocity=np.zeros(3), radius=4.0
+    ))
+
+    return Scenario(
+        name="LOS Problem",
+        start_state=State(pos=np.array([0., 0., 0.]), vel=np.array([0., 0., 0.])),
+        target=target,
+        obstacles=obstacles,
+        duration=20.0
+    )
+
+
 SCENARIOS = {
     "head_on": get_scenario_1_head_on,
     "head_on_2": get_scenario_2_head_on,
     "chase": get_scenario_3_chase,
     "many_blockers": get_scenario_4_blockers,
+    "los_problem": get_scenario_5_los,
 }

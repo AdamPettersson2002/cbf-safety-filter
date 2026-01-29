@@ -5,7 +5,7 @@ from dataclasses import dataclass
 @dataclass
 class Obstacle:
     """
-    Represents a spherical obstacle that can move.
+    Represents a spherical obstacle.
     """
     center: np.ndarray  # [x, y, z] position
     velocity: np.ndarray  # [vx, vy, vz] velocity
@@ -23,8 +23,6 @@ class Obstacle:
         Derived from the High-Order CBF condition:
         h_ddot + k1 * h_dot + k0 * h >= 0
         """
-        # Relative State
-        # We care about the vector pointing from Obstacle -> Drone
         rel_pos = drone_pos - self.center
         rel_vel = drone_vel - self.velocity
 
@@ -51,37 +49,30 @@ class Obstacle:
 
 
 class PatrollingObstacle(Obstacle):
+    """Starts at Waypoint A, start moving toward Waypoint B."""
     def __init__(self, waypoint_a, waypoint_b, speed=2.0, radius=1.0):
-        # Start at Waypoint A
         super().__init__(center=np.array(waypoint_a, dtype=float), velocity=np.zeros(3), radius=radius)
         self.waypoint_a = np.array(waypoint_a, dtype=float)
         self.waypoint_b = np.array(waypoint_b, dtype=float)
         self.speed = speed
-        self.target = self.waypoint_b # Start moving toward B
+        self.target = self.waypoint_b
 
     def update(self, dt: float):
-        # 1. Calculate direction to target
         direction = self.target - self.center
         dist = np.linalg.norm(direction)
 
-        # 2. Check if reached (with small tolerance)
         if dist < 0.1:
-            # Switch target
             if np.array_equal(self.target, self.waypoint_b):
                 self.target = self.waypoint_a
             else:
                 self.target = self.waypoint_b
             
-            # Recalculate direction
             direction = self.target - self.center
             dist = np.linalg.norm(direction)
 
-        # 3. Move
         if dist > 0:
             norm_dir = direction / dist
             self.velocity = norm_dir * self.speed
             self.center += self.velocity * dt
         else:
             self.velocity = np.zeros(3)
-
-

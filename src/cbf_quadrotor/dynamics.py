@@ -21,7 +21,7 @@ class DroneDynamics:
     def __init__(self, dt: float = 0.05):
         self.dt = dt
 
-        # --- The Double Integrator Matrices ---
+        # --- Double Integrator Matrices ---
         # State Transition Matrix A (6x6)
         # p_next = p + v*dt
         # v_next = v
@@ -40,10 +40,6 @@ class DroneDynamics:
         x_{k+1} = A * x_k + B * u_k
         """
         x_k = state.vector
-
-        # Apply the discrete dynamics
         x_next = self.A @ x_k + self.B @ u
 
-        # Return a new State object
         return State(pos=x_next[:3], vel=x_next[3:])
-

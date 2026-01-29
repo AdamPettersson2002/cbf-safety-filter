@@ -4,7 +4,7 @@ from scipy import sparse
 
 
 class SafetyFilter:
-    def __init__(self, u_max=15.0):
+    def __init__(self, u_max=20.0):
         self.u_max = u_max
 
     def filter(self, u_nom, drone_pos, drone_vel, obstacles):
@@ -17,7 +17,7 @@ class SafetyFilter:
 
         # --- SETUP QP ---
         # Minimize (1/2)u^T P u + q^T u
-        # To match ||u - u_nom||^2, we expand to: u^T u - 2*u_nom^T u
+        # Minimizing ||u - u_nom||^2 w.r.t u is the same as minimizing u^T u - 2*u_nom^T u
         # So P (Hessian) is Identity, q (linear) is -u_nom
 
         P_qp = sparse.csc_matrix(np.eye(3))
@@ -34,7 +34,6 @@ class SafetyFilter:
 
         # --- BUILD CONSTRAINTS ---
         if not A_cbf_list:
-            # No obstacles
             return np.clip(u_nom, -self.u_max, self.u_max)
 
         A_cons = np.vstack(A_cbf_list)
@@ -63,7 +62,6 @@ class SafetyFilter:
             print("Safety Filter Infeasible! Braking.")
             norm_v = np.linalg.norm(drone_vel)
             if norm_v > 0.01:
-                # Direction opposing velocity
                 u_brake = -drone_vel / norm_v * self.u_max
                 return u_brake
             else:
