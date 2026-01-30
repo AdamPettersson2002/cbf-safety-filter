@@ -33,7 +33,7 @@ if __name__ == "__main__":
 ## Project Structure
 The code is organized to separate concerns (Guidance vs. Safety vs. Physics).
 ```
-cbf-safety-filter/
+cbf-safety-filter/src/cbf_quadrotor
 ├── sim.ipynb           # MAIN ENTRY POINT: Loop, visualization, and logic
 ├── scenarios.py        # DEFINITIONS: Target paths, obstacle positions
 ├── guidance.py         # THE BRAIN: Target Tracking (u_nom)
