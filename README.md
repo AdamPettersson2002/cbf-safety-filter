@@ -7,22 +7,15 @@ A Python implementation of Control Barrier Function (CBF) based safety-critical 
 
 ## Overview
 
-This project implements a **safety filter** using Control Barrier Functions (CBFs) to ensure a quadrotor safely navigates to a goal position while avoiding no-fly zones. The system uses:
+This project implements a safety filter using Control Barrier Functions (CBFs) to ensure a quadrotor safely navigates to a goal position while avoiding no-fly zones. The system uses:
 
 - **Double integrator dynamics** for simplified 3D motion modeling
 - **Exponential CBF (ECBF)** constraints for relative degree 2 systems
 - **Quadratic Programming (QP)** to optimally modify unsafe control inputs
-- **Control Lyapunov Function (CLF) controller** as the nominal goal-reaching policy
+- **Modified Proportional Navigation Control** as the nominal goal-reaching policy
 
-### Key Features
 
-✅ **Mathematically rigorous safety guarantees** via CBF theory  
-✅ **Real-time QP-based safety filtering** using OSQP  
-✅ **Multiple no-fly zone support**  
-✅ **Comprehensive visualization** of trajectory, safety margins, and control signals  
-✅ **Clean, modular code structure** with detailed documentation  
-
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Installation
 
@@ -45,28 +38,31 @@ source .venv/bin/activate
 pip install numpy scipy matplotlib osqp 
 ```
 
-## 🕹 Usage & Scenarios
+## Usage & Scenarios
 The project uses a scenarios.py file to define different test cases. You can switch scenarios by changing the string in simulation.py:
 
 ```python
 if __name__ == "__main__":
-    # Options: "head_on", "chase", "clutter"
-    run_simulation("chase", animate=True)
+    run_simulation("head_on", animate=True)
+    #run_simulation("head_on_2", animate=True)
+    #run_simulation("chase", animate=True)
+    #run_simulation("many_blockers", animate=True)
+    #run_simulation("los_problem", animate=True)
 ```
 
-## 📂 Project Structure
+## Project Structure
 The code is organized to separate concerns (Guidance vs. Safety vs. Physics).
 ```
-cbf-drone-sim/
-├── simulation.py       # MAIN ENTRY POINT: Loop, visualization, and logic
+cbf-safety-filter/
+├── sim.ipynb           # MAIN ENTRY POINT: Loop, visualization, and logic
 ├── scenarios.py        # DEFINITIONS: Target paths, obstacle positions
-├── guidance.py         # THE BRAIN: LQR Target Tracking (u_nom)
-├── safety_filter.py    # THE GUARDIAN: CBF-QP Solver (u_safe)
+├── guidance.py         # THE BRAIN: Target Tracking (u_nom)
+├── safety_filter.py    # SAFETY FILTER: CBF-QP Solver (u_safe)
 ├── constraints.py      # MATH: Barrier Function definitions (h, h_dot)
 ├── dynamics.py         # PHYSICS: 3D Double Integrator
 └── README.md
 ```
-## 📐 Mathematical Background
+## Mathematical Background
 
 ### 1. System Dynamics (Double Integrator)
 
@@ -79,13 +75,32 @@ $$
 \dot{v} = u
 $$
 
-### 2. Nominal Guidance (LQR)
+### 2. Nominal Guidance (PPN)
 
-We solve the Algebraic Riccati Equation (ARE) to find the optimal gain matrix $K$ that minimizes the error to the target:
+We use Proportional Navigation to generate an acceleration perpendicular to the LOS vector of the target,
+ffectively putting the drone on a collision course. Given the relative position
+$$
+\mathbf{r} = \mathbf{p}_{target} - \mathbf{p}_{drone},
+$$
+and relative velocity
 
 $$
-u_{nom} = -K (x_{drone} - x_{target})
+\mathbf{v}_{rel} = \mathbf{v}_{target} - \mathbf{v}_{drone},
 $$
+the rotation rate of the LOS vector is given by
+$$
+\boldsymbol{\Omega} = \frac{\mathbf{r} \times \mathbf{v}_{rel}}{\|\mathbf{r}\|^2}.
+$$
+
+The nominal acceleration input is then composed of the PN term and a push term parallell to the LOS vector:
+$$
+\mathbf{u}_{nom} = \underbrace{N (\boldsymbol{\Omega} \times \mathbf{v}_{closing})}_{\text{PN Guidance}} + \underbrace{k_p \frac{\mathbf{r}}{\|\mathbf{r}\|}}_{\text{Approach Push}} + \boldsymbol{\eta},
+$$
+where $N$ is the navigation gain (set to 4.0).
+$\mathbf{v}_{closing} = -\mathbf{v}_{rel}$ is the closing velocity vector.
+$k_p$ is a proportional gain (set to 2.0) to encourage movement toward the target.
+$\boldsymbol{\eta} \sim \mathcal{N}(0, \sigma^2)$ represents added process noise.
+
 
 ### 3. Safety Filter (CBF-QP)
 
@@ -115,7 +130,7 @@ $$
 
 This ensures the drone never enters the obstacle region defined by $h(x) < 0$.
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 **QP solver failed**
 - Increase safety margin `d_safe`
@@ -133,15 +148,9 @@ This ensures the drone never enters the obstacle region defined by $h(x) < 0$.
 ## Future Enhancements
 
 - [ ] Multi-agent coordination
-- [ ] Model Predictive Control (MPC) integration
-- [ ] ROS interface for real quadrotor testing
+- [ ] Sensor modelling and FOV restrictions
+- [ ] EKF Implementation
 - [ ] C++ QP solver for faster performance
-
-## References
-
-1. Ames, A. D., et al. (2014). "Control Barrier Functions: Theory and Applications." *European Control Conference*.
-2. Xiao, W., & Belta, C. (2021). "Control Barrier Functions for Systems with High Relative Degree." *IEEE CDC*.
-3. Stellato, B., et al. (2020). "OSQP: An Operator Splitting Solver for Quadratic Programs." *Mathematical Programming Computation*.
 
 ## License
 
