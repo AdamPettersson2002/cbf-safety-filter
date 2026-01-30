@@ -79,23 +79,29 @@ $$
 
 We use Proportional Navigation to generate an acceleration perpendicular to the LOS vector of the target,
 ffectively putting the drone on a collision course. Given the relative position
+
 $$
 \mathbf{r} = \mathbf{p}_{target} - \mathbf{p}_{drone},
 $$
+
 and relative velocity
 
 $$
 \mathbf{v}_{rel} = \mathbf{v}_{target} - \mathbf{v}_{drone},
 $$
+
 the rotation rate of the LOS vector is given by
+
 $$
 \boldsymbol{\Omega} = \frac{\mathbf{r} \times \mathbf{v}_{rel}}{\|\mathbf{r}\|^2}.
 $$
 
 The nominal acceleration input is then composed of the PN term and a push term parallell to the LOS vector:
+
 $$
 \mathbf{u}_{nom} = \underbrace{N (\boldsymbol{\Omega} \times \mathbf{v}_{closing})}_{\text{PN Guidance}} + \underbrace{k_p \frac{\mathbf{r}}{\|\mathbf{r}\|}}_{\text{Approach Push}} + \boldsymbol{\eta},
 $$
+
 where $N$ is the navigation gain (set to 4.0).
 $\mathbf{v}_{closing} = -\mathbf{v}_{rel}$ is the closing velocity vector.
 $k_p$ is a proportional gain (set to 2.0) to encourage movement toward the target.
