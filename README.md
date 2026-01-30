@@ -104,7 +104,7 @@ $$
 
 - where $N$ is the navigation gain (set to 4.0).
 
-- $$ \mathbf{v}_{closing} = -\mathbf{v}_{rel} $$ is the closing velocity vector.
+- $\mathbf{v}_{closing}$ = -$\mathbf{v}_{rel}$ is the closing velocity vector.
 
 - $k_p$ is a proportional gain (set to 2.0) to encourage movement toward the target.
 
