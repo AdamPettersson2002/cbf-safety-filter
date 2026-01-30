@@ -102,7 +102,8 @@ $$
 \mathbf{u}_{nom} = \underbrace{N (\boldsymbol{\Omega} \times \mathbf{v}_{closing})}_{\text{PN Guidance}} + \underbrace{k_p \frac{\mathbf{r}}{\|\mathbf{r}\|}}_{\text{Approach Push}} + \boldsymbol{\eta},
 $$
 
-- where $N$ is the navigation gain (set to 4.0).
+where:
+- $N$ is the navigation gain (set to 4.0).
 
 - $\mathbf{v}_{closing} = -\mathbf{v}_{rel}$ is the closing velocity vector.
 
