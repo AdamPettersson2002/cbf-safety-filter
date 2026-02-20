@@ -10,14 +10,14 @@ class PPNGuidance:
         rel_pos = target_pos - drone_pos
         rel_vel = target_vel - drone_vel
         dist = np.linalg.norm(rel_pos)
-        
+
         if dist < 0.01:
             return np.zeros(3)
 
         # Calculate rotational velocity of LOS vector
         # Omega = (r x v) / (r . r)
         omega = np.cross(rel_pos, rel_vel) / (dist**2)
-        
+
         # Accelerate perpendicular to the LOS
         closing_vel = -rel_vel
         accel_cmd = self.N * np.cross(omega, closing_vel)

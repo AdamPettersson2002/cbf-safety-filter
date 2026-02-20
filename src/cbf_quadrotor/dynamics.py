@@ -34,12 +34,12 @@ class DroneDynamics:
         self.B = np.zeros((6, 3))
         self.B[3:6, :] = np.eye(3) * dt
 
-    def step(self, state: State, u: np.ndarray) -> State:
+    def step(self, x_k: np.ndarray, u: np.ndarray) -> State:
         """
         Advances the simulation by one time step dt.
         x_{k+1} = A * x_k + B * u_k
         """
-        x_k = state.vector
+        # x_k = state.vector
         x_next = self.A @ x_k + self.B @ u
-
-        return State(pos=x_next[:3], vel=x_next[3:])
+        return x_next
+        # return State(pos=x_next[:3], vel=x_next[3:])
