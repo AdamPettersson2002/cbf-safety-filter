@@ -199,7 +199,8 @@ def run_simulation(mission, animate=True):
         anim_object = None
         if animate:
             anim_object = animate_sim(path_history, target_history, obs_history, mission, dt)
-            # TODO: Save animation rather than render it
+            # TODO: Save animation rather than render it. If we wish to run all the missions in one go, 
+            # it's better if we save them and look and them in MP4's or something afterwards.
 
         plt.show()
     except Exception as e:
