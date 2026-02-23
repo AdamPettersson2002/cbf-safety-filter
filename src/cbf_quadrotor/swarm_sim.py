@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
 from dynamics import DroneDynamics
-from guidance import NominalGuidance
+from guidance import PPNGuidance
 from safety_filter import SafetyFilter
 from constraints import Obstacle
 import swarm_scenarios
 
+import os
 
-def run_swarm_simulation(scenario_name="formation"):
+def run_swarm_simulation(scenario_name="formation", save_dir=None):
     # 1. LOAD SCENARIO
     if scenario_name not in swarm_scenarios.SWARM_SCENARIOS:
         print("Scenario not found.")
@@ -25,7 +26,7 @@ def run_swarm_simulation(scenario_name="formation"):
     num_drones = mission.num_drones
 
     drones = [DroneDynamics(dt=dt) for _ in range(num_drones)]
-    guidance_sys = [NominalGuidance() for _ in range(num_drones)]
+    guidance_sys = [PPNGuidance() for _ in range(num_drones)]
     safety_filters = [SafetyFilter(u_max=15.0) for _ in range(num_drones)]
 
     states = [s for s in mission.start_states]  # Copy starting states
@@ -91,13 +92,13 @@ def run_swarm_simulation(scenario_name="formation"):
 
         # --- C. STEP PHYSICS ---
         for i in range(num_drones):
-            states[i] = drones[i].step(states[i], safe_controls[i])
+            drones[i].step(states[i], safe_controls[i])
 
     # --- D. ANIMATE ---
-    animate_swarm(pos_history, mission, dt)
+    animate_swarm(pos_history, mission, dt, save_dir)
 
 
-def animate_swarm(pos_history, mission, dt):
+def animate_swarm(pos_history, mission, dt, save_dir=None):
     pos_history = [np.array(h) for h in pos_history]
 
     fig = plt.figure(figsize=(12, 10))
@@ -141,7 +142,17 @@ def animate_swarm(pos_history, mission, dt):
         return lines + points
 
     anim = FuncAnimation(fig, update, frames=len(pos_history[0]), interval=50, blit=False)
-    plt.show()
+    
+    if save_dir:
+        os.makedirs(save_dir, exist_ok=True)
+        base_fn = mission.name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_").replace("+", "plus")
+        try:
+            anim.save(os.path.join(save_dir, f"swarm_{base_fn}_anim.mp4"), writer='ffmpeg', fps=20)
+        except Exception as e:
+            print(f"Failed to save swarm animation for {mission.name}: {e}")
+        plt.close('all')
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":

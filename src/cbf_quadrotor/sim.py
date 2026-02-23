@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 # from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
+import os
 
 from dynamics import DroneDynamics
 from guidance import PPNGuidance
@@ -56,6 +57,7 @@ def plot_static_results(drone_path, target_path, obstacles, u_nom_hist, u_safe_h
     axs[0].set_title("Control Inputs: PPN (Green) vs CBF (Blue)")
     axs[0].legend(loc='upper right')
     axs[2].set_xlabel("Time (s)")
+    return fig, fig2
 
 
 def animate_sim(path, target_path, obs_history, mission, dt):
@@ -136,7 +138,7 @@ def animate_sim(path, target_path, obs_history, mission, dt):
     return ani
 
 
-def run_simulation(mission, animate=True):
+def run_simulation(mission, animate=True, save_dir=None):
     try:
         print(f"Loaded: {mission.name} | Animate: {animate}")
         dt = 0.01
@@ -176,10 +178,7 @@ def run_simulation(mission, animate=True):
 
             u_nom = guidance.compute_u_nom(current_state.pos, current_state.vel, target_pos, target_vel)
             u_safe = safety_filter.filter(u_nom, current_state.pos, current_state.vel, mission.obstacles)
-            x_k = current_state.vector
-            next_state = drone_physics.step(x_k, u_safe)
-            current_state.pos = next_state[:3]
-            current_state.vel = next_state[3:]
+            drone_physics.step(current_state, u_safe)
 
             path_history.append(current_state.pos)
             target_history.append(target_pos)
@@ -193,16 +192,26 @@ def run_simulation(mission, animate=True):
         if len(path_history) == 0:
             return
 
-        plot_static_results(path_history, target_history, mission.obstacles,
+        fig1, fig2 = plot_static_results(path_history, target_history, mission.obstacles,
                             u_nom_history, u_safe_history, time_history)
 
         anim_object = None
         if animate:
             anim_object = animate_sim(path_history, target_history, obs_history, mission, dt)
-            # TODO: Save animation rather than render it. If we wish to run all the missions in one go, 
-            # it's better if we save them and look and them in MP4's or something afterwards.
 
-        plt.show()
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+            base_fn = mission.name.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_").replace("+", "plus")
+            fig1.savefig(os.path.join(save_dir, f"{base_fn}_3d_path.png"))
+            fig2.savefig(os.path.join(save_dir, f"{base_fn}_controls.png"))
+            if anim_object:
+                try:
+                    anim_object.save(os.path.join(save_dir, f"{base_fn}_anim.mp4"), writer='ffmpeg', fps=30)
+                except Exception as e:
+                    print(f"Failed to save animation for {mission.name}: {e}")
+            plt.close('all')
+        else:
+            plt.show()
     except Exception as e:
         print(f"Exception: {e}")
 
