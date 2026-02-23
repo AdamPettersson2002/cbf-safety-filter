@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+# from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
 from dynamics import DroneDynamics
 from guidance import PPNGuidance
 from safety_filter import SafetyFilter
-import scenarios
+from scenarios import MissionFactory
 
 
 def plot_static_results(drone_path, target_path, obstacles, u_nom_hist, u_safe_hist, time_hist):
@@ -28,8 +28,8 @@ def plot_static_results(drone_path, target_path, obstacles, u_nom_hist, u_safe_h
         ax.plot_wireframe(x, y, z, color='red', alpha=0.3)
 
     ax.set_title("3D Flight Path")
-    ax.set_xlabel("X");
-    ax.set_ylabel("Y");
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
     ax.set_zlabel("Z")
     ax.legend()
 
@@ -89,8 +89,8 @@ def animate_sim(path, target_path, obs_history, mission, dt):
     ax.set_xlim(np.min(all_x) - pad, np.max(all_x) + pad)
     ax.set_ylim(np.min(all_y) - pad, np.max(all_y) + pad)
     ax.set_zlim(np.min(all_z) - pad, np.max(all_z) + pad)
-    ax.set_xlabel('X');
-    ax.set_ylabel('Y');
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     ax.set_title(f"Simulation: {mission.name}")
     ax.legend()
@@ -136,77 +136,85 @@ def animate_sim(path, target_path, obs_history, mission, dt):
     return ani
 
 
-def run_simulation(scenario_name="chase", animate=True):
-    if scenario_name not in scenarios.SCENARIOS:
-        print(f"Error: Scenario '{scenario_name}' not found.")
-        return
-    mission = scenarios.SCENARIOS[scenario_name]()
-    print(f"Loaded: {mission.name} | Animate: {animate}")
+def run_simulation(mission, animate=True):
+    try:
+        print(f"Loaded: {mission.name} | Animate: {animate}")
+        dt = 0.01
+        drone_physics = DroneDynamics(dt=dt)
+        guidance = PPNGuidance()
+        safety_filter = SafetyFilter()
+        current_state = mission.start_state
 
-    dt = 0.01
-    drone_physics = DroneDynamics(dt=dt)
-    guidance = PPNGuidance()
-    safety_filter = SafetyFilter()
-    current_state = mission.start_state
+        arrival_threshold = 0.2
 
-    arrival_threshold = 0.2
+        path_history = []
+        target_history = []
+        obs_history = []
 
-    path_history = []
-    target_history = []
-    obs_history = []
+        u_nom_history = []
+        u_safe_history = []
+        time_history = []
 
-    u_nom_history = []
-    u_safe_history = []
-    time_history = []
+        total_steps = int(mission.duration / dt)
+        print(f"Simulating {total_steps} steps...")
 
-    total_steps = int(mission.duration / dt)
-    print(f"Simulating {total_steps} steps...")
+        for t_step in range(total_steps):
+            time = t_step * dt
 
-    for t_step in range(total_steps):
-        time = t_step * dt
+            target_pos, target_vel = mission.target.update(time)
 
-        target_pos, target_vel = mission.target.update(time)
+            dist_to_target = np.linalg.norm(current_state.pos - target_pos)
+            if dist_to_target < arrival_threshold:
+                print(f"Target Reached! Stopping at T={time:.2f}s")
+                break
 
-        dist_to_target = np.linalg.norm(current_state.pos - target_pos)
-        if dist_to_target < arrival_threshold:
-            print(f"Target Reached! Stopping at T={time:.2f}s")
-            break
+            current_obs_snapshot = []
+            for obs in mission.obstacles:
+                obs.update(dt)
+                current_obs_snapshot.append(obs.center.copy())
+            obs_history.append(current_obs_snapshot)
 
-        current_obs_snapshot = []
-        for obs in mission.obstacles:
-            obs.update(dt)
-            current_obs_snapshot.append(obs.center.copy())
-        obs_history.append(current_obs_snapshot)
+            u_nom = guidance.compute_u_nom(current_state.pos, current_state.vel, target_pos, target_vel)
+            u_safe = safety_filter.filter(u_nom, current_state.pos, current_state.vel, mission.obstacles)
+            x_k = current_state.vector
+            next_state = drone_physics.step(x_k, u_safe)
+            current_state.pos = next_state[:3]
+            current_state.vel = next_state[3:]
 
-        u_nom = guidance.compute_u_nom(current_state.pos, current_state.vel, target_pos, target_vel)
-        u_safe = safety_filter.filter(u_nom, current_state.pos, current_state.vel, mission.obstacles)
-        current_state = drone_physics.step(current_state, u_safe)
+            path_history.append(current_state.pos)
+            target_history.append(target_pos)
+            u_nom_history.append(u_nom.copy())
+            u_safe_history.append(u_safe.copy())
+            time_history.append(time)
 
-        path_history.append(current_state.pos)
-        target_history.append(target_pos)
-        u_nom_history.append(u_nom.copy())
-        u_safe_history.append(u_safe.copy())
-        time_history.append(time)
+        path_history = np.array(path_history)
+        target_history = np.array(target_history)
 
-    path_history = np.array(path_history)
-    target_history = np.array(target_history)
+        if len(path_history) == 0:
+            return
 
-    if len(path_history) == 0:
-        return
+        plot_static_results(path_history, target_history, mission.obstacles,
+                            u_nom_history, u_safe_history, time_history)
 
-    plot_static_results(path_history, target_history, mission.obstacles,
-                        u_nom_history, u_safe_history, time_history)
+        anim_object = None
+        if animate:
+            anim_object = animate_sim(path_history, target_history, obs_history, mission, dt)
+            # TODO: Save animation rather than render it. If we wish to run all the missions in one go, 
+            # it's better if we save them and look and them in MP4's or something afterwards.
 
-    anim_object = None
-    if animate:
-        anim_object = animate_sim(path_history, target_history, obs_history, mission, dt)
+        plt.show()
+    except Exception as e:
+        print(f"Exception: {e}")
 
-    plt.show()
+
+def main():
+    mf = MissionFactory(scenarios={"head_on"})
+    missions = mf.generate_missions()
+    for m in missions:
+
+        print("Starting Simulation...")
+        run_simulation(m, animate=True)
 
 
 if __name__ == "__main__":
-    run_simulation("head_on", animate=True)
-    # run_simulation("head_on_2", animate=True)
-    # run_simulation("chase", animate=True)
-    # run_simulation("many_blockers", animate=True)
-    # run_simulation("los_problem", animate=True)
+    main()
