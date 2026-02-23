@@ -26,9 +26,6 @@ dist/
 build/
 *.egg
 
-# Results (comment out if you want to track specific results)
-results/
-
 # Jupyter Notebook
 .ipynb_checkpoints
 
