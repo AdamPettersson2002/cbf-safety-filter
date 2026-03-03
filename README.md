@@ -139,8 +139,6 @@ This ensures the drone never enters the obstacle region defined by $h(x) < 0$.
 
 - [ ] Multi-agent coordination
 - [ ] Sensor modelling and FOV restrictions
-- [ ] EKF Implementation
-- [ ] C++ QP solver for faster performance
 
 ## License
 
